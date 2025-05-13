@@ -1,9 +1,8 @@
 package ProgramowanieObiektowe;
 
 public class main {
-    int a = 3;
-    int b = 5;
     public static void main(String[] args){
-        System.out.println("HelloWorld");
+        point p1 = new point(4.2,3.1);
+        System.out.print(p1.toString());
     }
 }
