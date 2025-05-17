@@ -1,1 +1,1 @@
-Me in week 8 finally understanding week 1 stuff
+We lost the battle, but not the war!
