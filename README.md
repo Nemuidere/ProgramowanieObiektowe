@@ -1,1 +1,2 @@
-We lost the battle, but not the war!
+I'm running around in circles
+Like a really shitty game.
