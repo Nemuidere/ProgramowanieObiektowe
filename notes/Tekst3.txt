@@ -1,0 +1,229 @@
+1. Importy
+java
+import java.io.*;
+import java.util.*;
+import java.util.function.*;
+Import wczytuje potrzebne klasy z bibliotek Javy: io do operacji na plikach/serializacji, util dla kolekcji (ArrayList, HashMap itd.), function do interfejsów funkcyjnych (Predicate, Supplier, itd.).
+
+2. Stała i finalna klasa
+java
+final class DocumentStatus {
+    public static final String AVAILABLE = "DOSTĘPNY";
+    public static final String BORROWED = "WYPOŻYCZONY";
+}
+final class — nie można jej dziedziczyć.
+
+public static final — stała, dostępna wszędzie, niezmienna po inicjalizacji.
+
+3. Klasa abstrakcyjna, enkapsulacja, final method
+java
+abstract class Document implements Serializable {
+    private String title;
+    private String author;
+    protected int year;
+    public final double calculateLateFee(int daysLate) { return daysLate * 0.50; }
+    public Document(String title, String author, int year) { this.title = title; this.author = author; this.year = year; }
+    public String getTitle() { return title; }
+    public String getAuthor() { return author; }
+    public int getYear() { return year; }
+    public abstract void display(); // Polimorfizm
+    public Document shallowClone() throws CloneNotSupportedException { return (Document) super.clone(); }
+}
+abstract class — można tworzyć tylko podklasy, nie instancje.
+
+implements Serializable — pozwala serializować obiekt do pliku.
+
+private/protected/public — modyfikatory dostępu, enkapsulacja.
+
+final method — nie można jej przesłonić w podklasach.
+
+Konstruktory — specjalna metoda do inicjalizacji obiektu.
+
+abstract void display() — metoda musi być zaimplementowana przez podklasy.
+
+shallowClone() — przykładowe klonowanie (tu uproszczone, w praktyce wymaga Cloneable).
+
+4. Interfejs — Borrowable
+java
+interface Borrowable {
+    void borrow(User user);
+    void returnItem();
+    default boolean isAvailable() { return true; }
+}
+interface — deklaruje zestaw metod, które klasy muszą zaimplementować.
+
+default — metoda z domyślną implementacją (od Java 8).
+
+5. Builder, dziedziczenie, polimorfizm (overriding)
+java
+class Book extends Document implements Borrowable {
+    private String isbn;
+    private String category;
+    // Builder pattern
+    public static class Builder { ... }
+    private Book(...) { super(...); ... }
+    @Override public void display() { System.out.println("Book: " + getTitle()); }
+    @Override public void borrow(User user) { ... }
+    @Override public void returnItem() { ... }
+    public String getCategory() { return category; }
+}
+extends Document — dziedziczy po klasie bazowej, relacja IS-A.
+
+implements Borrowable — deklaruje, że klasa oferuje funkcje wypożyczania.
+
+Statyczna klasa Builder — wzorzec Builder (tworzenie obiektu krok po kroku).
+
+@Override — przesłanianie/metoda polimorficzna.
+
+6. Klasa abstrakcyjna User, agregacja
+java
+abstract class User {
+    protected String name;
+    protected List<Document> borrowed = new LinkedList<>();
+    public User(String name) { this.name = name; }
+    public String getName() { return name; }
+    public abstract void borrow(Document doc);
+}
+class Student extends User {
+    public Student(String name) { super(name); }
+    @Override public void borrow(Document doc) { borrowed.add(doc); }
+}
+Agregacja — User ma listę wypożyczonych dokumentów, lista jest współdzielona.
+
+Dziedziczenie — Student jest Userem.
+
+@Override — podklasa musi zaimplementować metodę abstrakcyjną.
+
+7. Singleton — LibraryManager
+java
+class LibraryManager {
+    private static volatile LibraryManager instance;
+    private final List<Document> docs = new ArrayList<>();
+    private LibraryManager() {}
+    public static LibraryManager getInstance() {
+        if(instance==null) synchronized(LibraryManager.class) {
+            if(instance==null) instance=new LibraryManager();
+        }
+        return instance;
+    }
+    public void addDocument(Document doc) { docs.add(doc); }
+    public List<Document> getDocs() { return docs; }
+    public List<Document> search(Predicate<Document> filter) {
+        List<Document> result = new ArrayList<>();
+        for(Document d:docs) if(filter.test(d)) result.add(d);
+        return result;
+    }
+}
+Singleton — wzorzec, tylko jedna instancja w programie.
+
+volatile — gwarantuje widoczność pomiędzy wątkami.
+
+synchronizacja bloku kodu — wątkowość.
+
+Predicate — interfejs funkcyjny, lambda.
+
+8. Decorator — rozszerzenie funkcji
+java
+class PremiumDocDecorator extends Document {
+    private Document base;
+    public PremiumDocDecorator(Document base) { super(base.getTitle(), base.getAuthor(), base.getYear()); this.base=base; }
+    public void display() { base.display(); System.out.println("[Premium feature!]"); }
+}
+Decorator pattern — dodaje funkcje do obiektu bez zmiany jego klasy.
+
+9. Wyjątki — checked, unchecked
+java
+class BookNotFoundException extends Exception {
+    public BookNotFoundException(String msg) { super(msg); }
+}
+class UserNotAuthorizedException extends RuntimeException {
+    public UserNotAuthorizedException(String msg) { super(msg); }
+}
+Exception — checked, wymagają obsługi (try-catch, throws).
+
+RuntimeException — unchecked, mogą pojawić się w runtime bez obsługi.
+
+10. Kolekcje, Multimap
+java
+class MultiMap<K,V> {
+    private Map<K,List<V>> map = new HashMap<>();
+    public void put(K key, V val) { map.computeIfAbsent(key,k->new ArrayList<>()).add(val);}
+    public List<V> get(K key) { return map.getOrDefault(key,new ArrayList<>());}
+}
+Generyki — typy parametryzowane (zwiększają bezpieczeństwo typowania).
+
+Map<K,List<V>> — implementacja multimap: wiele wartości dla klucza.
+
+11. Main — testowanie, TDD, wątki, Optional, dekorator, serializacja
+java
+public class LibraryApp {
+    public static void main(String[] args) throws Exception {
+        // Builder, dziedziczenie
+        Book b1 = new Book.Builder().title("Java Guide").author("Oracle").category("Programming").year(2020).isbn("123").build();
+
+        // User, borrow
+        User u1 = new Student("Janek"); u1.borrow(b1);
+
+        // Singleton
+        LibraryManager manager = LibraryManager.getInstance();
+        manager.addDocument(b1);
+        manager.addDocument(new Book.Builder().title("Clean Code").author("Martin").category("Programming").year(2008).isbn("456").build());
+
+        // Predicate, lambda, stream-like search
+        List<Document> programmingBooks = manager.search(d -> (d instanceof Book) && "Programming".equals(((Book)d).getCategory()));
+
+        // Multimap, Optional
+        MultiMap<String, Book> booksByCat = new MultiMap<>();
+        booksByCat.put("Programming",b1);
+        Optional<Document> found = programmingBooks.stream().findFirst();
+        found.ifPresent(d -> System.out.println("Found: "+d.getTitle()));
+
+        // Try-with-resources, serializacja
+        try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("books.dat"))) { oos.writeObject(programmingBooks); }
+
+        // Checked exception
+        try {
+            Document doc = programmingBooks.stream().filter(b->"NotExist".equals(b.getTitle())).findFirst()
+                .orElseThrow(() -> new BookNotFoundException("Not found!"));
+        } catch(BookNotFoundException e){System.out.println("Exception: "+e.getMessage());}
+
+        // Decorator
+        PremiumDocDecorator prembk = new PremiumDocDecorator(b1); prembk.display();
+
+        // Wątek, Runnable, Thread
+        Runnable indexer = () -> { for(Document d:manager.getDocs())
+            System.out.println("Indexing: "+d.getTitle());};
+        Thread t = new Thread(indexer); t.start(); t.join();
+
+        // Testy “manualne” (TDD style)
+        assert b1.getTitle().equals("Java Guide") : "Book title mismatch";
+        assert u1 instanceof Student : "User type mismatch";
+        assert programmingBooks.size() == 2 : "Programming books count mismatch";
+        assert booksByCat.get("Programming").size() == 1 : "Multimap count mismatch";
+
+        // Interfejs funkcyjny/lambda
+        BookValidator validator = b -> b.getTitle()!=null && b.getAuthor()!=null;
+        System.out.println("Is valid? "+validator.isValid(b1));
+    }
+}
+Lambda (b -> ...), Predicate — funkcyjność w stylu nowoczesnej Javy.
+
+Optional — bezpieczna obsługa wartości, które mogą nie istnieć.
+
+try-with-resources — nowoczesny styl bezpiecznej obsługi plików (zamkniecie pliku).
+
+Thread, Runnable — wielowątkowość.
+
+Serializacja — zapis obiektów do pliku, obsługa strumieni.
+
+Dekorator — dynamicznie dodaje nowe cechy do obiektu (PremiumDocDecorator).
+
+12. Interfejs funkcyjny
+java
+@FunctionalInterface
+interface BookValidator { boolean isValid(Book b); }
+@FunctionalInterface — można przekazać lambdę jako implementację (Java 8).
+
+Interfejsy funkcyjne — podstawa programowania funkcyjnego w Javie.
+
+okok

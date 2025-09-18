@@ -1,0 +1,187 @@
+1. Różnice: Typy proste, obiekty, referencje (Java vs C++)
+Typy proste: int, double, boolean itp. — przechowywane bezpośrednio na stosie; przekazywanie wartości kopiuje wartość.
+
+Obiekty: są na stercie, zmienne przechowują referencję do miejsca w pamięci; kopiowanie referencji NIE tworzy kopii obiektu, tylko kolejny wskaźnik do tego samego obiektu. W C++ wskaźniki i referencje obsługuje się ręcznie, w Javie zarządza tym garbage collector.
+
+Przykład:
+
+java
+int a = 5;        // a to wartość
+MyClass m = new MyClass(); // m to referencja do obiektu
+MyClass m2 = m;   // m i m2 wskazują na ten sam obiekt
+2. Klonowanie i kopiowanie obiektów (shallow vs deep clone)
+Shallow copy: klonowanie referencji — pola obiektowe we wskazanej kopii wskazują na te SAME obiekty co oryginał.
+
+Deep copy: cała zawartość (w tym obiekty zagnieżdżone) jest kopiowana niezależnie; zmiana obiektu zagnieżdżonego w kopii NIE wpływa na oryginał.
+
+Klonowanie: metoda clone() (domyślnie w Object) zapewnia SHALLOW copy, deep copy wymaga własnej implementacji.
+
+Przykład deep clone:
+
+java
+public class Person implements Cloneable {
+  Address address; // Address implements Cloneable
+  public Person clone() {
+    Person p2 = (Person) super.clone();
+    p2.address = (Address) address.clone(); // deep copy
+    return p2;
+  }
+}
+3. Konstruktory, this, super
+Konstruktor: specjalna metoda uruchamiana przy tworzeniu obiektu. Może być domyślny/parametryczny.
+
+this(): wywołanie innego konstruktora tej samej klasy.
+
+super(): wywołanie konstruktora klasy nadrzędnej.
+
+Przykład:
+
+java
+class Book extends Document {
+  Book(String title) {
+    super(title); // wywołuje konstruktor klasy bazowej
+  }
+}
+4. final — zastosowania
+final class: nie można dziedziczyć.
+
+final method: nie można przesłonić.
+
+final variable: wartość niezmienna po inicjalizacji (odpowiednik C++ const).
+
+5. Dziedziczenie, implementacja interfejsów
+extends – jedna klasa bazowa (dziedziczenie). Relacja IS-A.
+
+implements – wiele interfejsów (implementacja). Relacja CAN-DO.
+
+W Javie brak wielodziedziczenia klas, za to interfejsów dowolna liczba.
+
+6. Klasy abstrakcyjne vs interfejsy
+Klasa abstrakcyjna: częściowo zaimplementowana; mogą być metody z ciałem i abstrakcyjne.
+
+Interfejs: zbiór nagłówków metod (od Java 8 mogą być metody domyślne/static); tylko sygnatury.
+
+Klasa może mieć jedną klasę bazową, lecz dowolną liczbę interfejsów.
+
+7. Polimorfizm
+Compile-time (overloading): wiele metod o tej samej nazwie, różne parametry.
+
+Runtime (overriding): wywołanie metody implementowanej w podklasie/interfejsie na referencji do klasy bazowej/interfejsu.
+
+8. Enkapsulacja, modyfikatory dostępu, klasy zagnieżdżone
+Służą do ukrywania szczegółów i ograniczania widoczności pól/metod:
+
+private — tylko w tej klasie
+
+default (brak modyfikatora) — widoczne w pakiecie
+
+protected — w pakiecie i podklasach (nawet w innych pakietach)
+
+public — wszędzie
+
+Zagnieżdżone klasy też mogą mieć wszystkie modyfikatory — top-level klasy tylko public/default.
+
+9. Asocjacje między klasami
+Asocjacja: ogólna relacja (użytkownik i wypożyczane książki)
+
+Agregacja: słabszy związek (użytkownik może mieć referencję do wypożyczeń)
+
+Kompozycja: silny związek; obiekt nie istnieje bez drugiego (np. strony i książka)
+
+10. Singleton, Builder, Decorator — podstawowe wzorce
+Singleton: jedna instancja (prywatny konstruktor, metoda getInstance(), synchronizacja)
+Builder: tworzenie obiektu krok po kroku (przydatny do obiektów z wieloma parametrami)
+Decorator: dynamiczne rozszerzanie funkcjonalności (obiekt „opakowuje” inny obiekt tej samej klasy/interfejsu)
+
+11. Interfejs Collection, ArrayList vs LinkedList, multimap
+Collection: wspólny interfejs kolekcji (add, remove itd.)
+
+ArrayList: szybki dostęp, wolne operacje wewnątrz listy.
+
+LinkedList: szybkie wstawianie/usuwanie na początku/końcu, wolny dostęp losowy.
+
+multimap: Map<K, List<V>> — jeden klucz, wiele wartości na liście.
+
+12. Reader, BufferedReader, InputStreamReader
+Reader: bazowy interfejs do danych tekstowych
+
+BufferedReader: buforowane czytanie (czyta linia po linii)
+
+InputStreamReader: konwersja bajtów (InputStream) na znaki (Reader), np. do odczytu plików z określonym kodowaniem znaków
+
+13. Serializacja
+Zapis obiektu do pliku (implementacja Serializable), odczyt: ObjectInputStream.readObject()
+
+transient — pole nie serializowane
+
+14. Wyjątki: Exception vs RuntimeException
+checked exception: sprawdzane na etapie kompilacji, programista MUSI obsłużyć/blok try-catch albo deklaracja throws (np. IOException, SQLException).
+
+unchecked exception: dziedziczące po RuntimeException, nie trzeba ich obsługiwać (np. NullPointerException, ArrayIndexOutOfBoundsException).
+
+15. try-with-resources
+Składnia Java 7+: try (AutoClosable res = ...) { ... } automatycznie zamknie zasoby (np. pliki)
+
+16. Strumienie: metody pośrednie (intermediate) i końcowe (terminal)
+Pośrednie: zwracają strumień (np. filter, map, sorted)
+
+Końcowe/terminalne: wywołują pipeline i produkują wynik/przerywają pipeline (np. collect, forEach, reduce, min, max, count, anyMatch)
+
+17. Kolektory
+groupingBy: grupowanie po kluczu
+
+counting: liczy elementy w grupie
+
+toList(): kolekcjonuje do nowej listy itp.
+
+18. Testowanie, TDD, testy parametryzowane
+Motywacja: wykrywanie błędów, bezpieczeństwo zmian
+
+TDD: najpierw piszemy test, potem minimalny kod by zdał test
+
+Testy parametryzowane: JUnit 5 – @ParameterizedTest + @ValueSource/@CsvSource
+
+19. Pakiety, JAR, manifest
+Pakiet: porządkowanie klas, zapobiega konfliktom nazw, określa widoczność (default/protected)
+
+JAR: plik archiwum Java; manifest określa punkt startu, klasypath, wersję
+
+20. Maven, pom.xml
+Automatyzuje build, obsługę zależności, testy itp.
+
+plik pom.xml: sekcje groupId, artifactId, version, dependencies (zależności), build (pluginy), profiles (np. dev/test/prod)
+
+21. Generics, bounded wildcards
+Typy generyczne: type safety, bez rzutowania
+
+Bounded wildcards: ? extends T (góra), ? super T (dół)
+
+22. Interfejsy funkcyjne, lambdy
+Interfejsy funkcyjne: Supplier<T>, Predicate<T>, Consumer<T>, Function<T,R> (opisane poniżej)
+
+Lambda: krótka składnia do przekazania implementacji metody w miejscu użycia (argument dla metody/filtrowania itp.)
+
+Przykład:
+
+java
+List<String> list = ...;
+list.forEach(str -> System.out.println(str)); // Consumer<String>
+list.removeIf(s -> s.isEmpty()); // Predicate<String>
+23. Optional
+Opakowanie wartości, która może być null — unika NullPointerException, metody: isPresent(), orElse(), ifPresent()
+
+24. Wątki, synchronizacja, cykl życia
+Thread vs Runnable: Runnable lepsze, bo pozwala na dziedziczenie po innej klasie
+
+Synchronizacja: synchronized na metodzie/bloku, volatile — świeże dane dla wątków
+
+Cykl życia: NEW → RUNNABLE → RUNNING → BLOCKED/WAITING/SLEEPING → TERMINATED
+
+25. JavaFX: Stage, Scene, eventy
+Stage: okno aplikacji
+
+Scene: zawartość wizualna, może być wymieniana na Stage
+
+Node: elementy drzewa SceneGraph (kontrolki)
+
+Zdarzenia obsługiwane przez setOnAction/setOnMouseClicked itp.

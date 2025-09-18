@@ -1,0 +1,525 @@
+1. PODSTAWY JAVY
+Typy proste vs Obiekty
+// Typy proste - przechowywane na stosie
+int documentId = 12345;        // 4 bajty na stosie
+boolean isAvailable = true;    // 1 bit na stosie
+
+// Obiekty - referencja na stosie, obiekt na stercie
+String title = "Java Guide";   // referencja na stosie -> obiekt na stercie
+Document doc = new Document(); // referencja na stosie -> obiekt na stercie
+
+// Kopiowanie typów prostych - kopiowana wartość
+int id1 = 100;
+int id2 = id1;    // id2 = 100, niezależne od id1
+id1 = 200;        // id2 nadal = 100
+
+// Kopiowanie referencji - kopiowana referencja, nie obiekt
+Document doc1 = new Document("Book1");
+Document doc2 = doc1;  // obie referencje wskazują na ten sam obiekt
+doc1.setTitle("Book2"); // doc2.getTitle() też zwróci "Book2"
+
+
+Konstruktory i słowa kluczowe this/super
+public class Document {
+    private String title;
+    private String author;
+
+    // Konstruktor domyślny
+    public Document() {
+        this("Unknown", "Unknown Author"); // wywołanie innego konstruktora
+    }
+
+    // Konstruktor z parametrami
+    public Document(String title, String author) {
+        this.title = title;   // this odróżnia pole od parametru
+        this.author = author;
+    }
+}
+
+public class Book extends Document {
+    private int pages;
+
+    public Book(String title, String author, int pages) {
+        super(title, author);  // wywołanie konstruktora klasy nadrzędnej
+        this.pages = pages;
+    }
+
+    public Book() {
+        this("Unknown Book", "Unknown", 0); // wywołanie innego konstruktora tej klasy
+    }
+}
+
+
+Słowo kluczowe final
+// Final variable - stała
+public final class DocumentStatus {
+    public static final String AVAILABLE = "DOSTĘPNY";      // stała klasowa
+    public static final String BORROWED = "WYPOŻYCZONY";
+    public static final String RESERVED = "REZERVOWANY";
+}
+
+// Final method - nie może być przesłonięta
+public class Document {
+    // Ta metoda nie może być przesłonięta w podklasach
+    public final double calculateLateFee(int daysLate) {
+        return daysLate * 0.50; // 50 groszy za dzień
+    }
+}
+
+// Final class - nie może być dziedziczona
+public final class DocumentId {
+    private final int id;
+
+    public DocumentId(int id) {
+        this.id = id; // final field musi być zainicjalizowane
+    }
+
+    public int getId() { return id; }
+    // Brak settera - klasa niemodyfikowalna
+}
+
+
+2. PROGRAMOWANIE OBIEKTOWE
+Dziedziczenie vs Implementacja
+// DZIEDZICZENIE (extends) - relacja "IS-A"
+abstract class Document {
+    protected String title;
+    public abstract void display(); // metoda abstrakcyjna
+
+    public void setTitle(String title) { // metoda konkretna
+        this.title = title;
+    }
+}
+
+class Book extends Document {
+    @Override
+    public void display() { // MUSI być zaimplementowana
+        System.out.println("Book: " + title);
+    }
+}
+
+// IMPLEMENTACJA (implements) - relacja "CAN-DO"
+interface Borrowable {
+    void borrow(User user);     // domyślnie public abstract
+    void returnItem();
+
+    // Od Java 8 - metody domyślne
+    default boolean isAvailable() {
+        return true;
+    }
+}
+
+class Book extends Document implements Borrowable, Serializable {
+    @Override
+    public void borrow(User user) { /* implementacja */ }
+
+    @Override
+    public void returnItem() { /* implementacja */ }
+}
+
+
+Polimorfizm
+// POLIMORFIZM COMPILE-TIME (Method Overloading)
+class LibraryService {
+    // Różne sygnatury - różna liczba parametrów
+    public void addDocument(String title) { /*...*/ }
+    public void addDocument(String title, String author) { /*...*/ }
+    public void addDocument(String title, String author, int year) { /*...*/ }
+
+    // Różne typy parametrów
+    public void search(String title) { /*...*/ }
+    public void search(int documentId) { /*...*/ }
+}
+
+// POLIMORFIZM RUNTIME (Method Overriding)
+Document doc1 = new Book("Java Guide", "Oracle", 500);
+Document doc2 = new Magazine("Tech Today", "TechCorp", 2024);
+
+// Wywołanie metody zostanie zdecydowane w runtime
+doc1.display(); // wywołuje Book.display()
+doc2.display(); // wywołuje Magazine.display()
+
+
+3. WZORCE PROJEKTOWE
+Singleton Pattern
+// Thread-safe Singleton z lazy initialization
+public class LibraryManager {
+    private static volatile LibraryManager instance;
+    private final List<Document> documents;
+
+    // Prywatny konstruktor zapobiega tworzeniu instancji
+    private LibraryManager() {
+        documents = new ArrayList<>();
+    }
+
+    // Double-checked locking
+    public static LibraryManager getInstance() {
+        if (instance == null) {                           // 1. sprawdzenie
+            synchronized (LibraryManager.class) {
+                if (instance == null) {                   // 2. sprawdzenie
+                    instance = new LibraryManager();
+                }
+            }
+        }
+        return instance;
+    }
+}
+
+
+Builder Pattern
+public class Book {
+    private String title;
+    private String author;
+    private String isbn;
+    private int pages;
+
+    // Prywatny konstruktor - tylko Builder może tworzyć
+    private Book(BookBuilder builder) {
+        this.title = builder.title;
+        this.author = builder.author;
+        this.isbn = builder.isbn;
+        this.pages = builder.pages;
+    }
+
+    // Statyczna klasa wewnętrzna Builder
+    public static class BookBuilder {
+        private String title;
+        private String author;
+        private String isbn;
+        private int pages;
+
+        public BookBuilder(String title, String author) {
+            this.title = title;
+            this.author = author;
+        }
+
+        public BookBuilder isbn(String isbn) {
+            this.isbn = isbn;
+            return this; // zwracamy builder dla method chaining
+        }
+
+        public BookBuilder pages(int pages) {
+            this.pages = pages;
+            return this;
+        }
+
+        public Book build() {
+            return new Book(this);
+        }
+    }
+}
+
+// Użycie Builder pattern
+Book book = new Book.BookBuilder("Effective Java", "Joshua Bloch")
+    .isbn("978-0134685991")
+    .pages(412)
+    .build();
+
+
+Decorator Pattern
+// Bazowy interfejs komponentu
+interface Document {
+    String getDescription();
+    double getCost();
+}
+
+// Konkretny komponent
+class BasicBook implements Document {
+    private String title;
+
+    public BasicBook(String title) {
+        this.title = title;
+    }
+
+    @Override
+    public String getDescription() {
+        return title;
+    }
+
+    @Override
+    public double getCost() {
+        return 29.99;
+    }
+}
+
+// Bazowy dekorator
+abstract class DocumentDecorator implements Document {
+    protected Document document;
+
+    public DocumentDecorator(Document document) {
+        this.document = document;
+    }
+}
+
+// Konkretne dekoratory
+class PremiumFeature extends DocumentDecorator {
+    public PremiumFeature(Document document) {
+        super(document);
+    }
+
+    @Override
+    public String getDescription() {
+        return document.getDescription() + " + Premium Access";
+    }
+
+    @Override
+    public double getCost() {
+        return document.getCost() + 9.99;
+    }
+}
+
+// Użycie
+Document book = new BasicBook("Java Programming");
+book = new PremiumFeature(book);    // dodajemy premium
+
+System.out.println(book.getDescription()); // "Java Programming + Premium Access"
+System.out.println(book.getCost());        // 39.98
+
+
+4. KOLEKCJE
+ArrayList vs LinkedList
+// ArrayList - tablica dynamiczna
+List<Document> documents = new ArrayList<>();
+
+// Zalety ArrayList:
+// - Szybki dostęp losowy: O(1) dla get(index)
+// - Mniejsze zużycie pamięci
+// - Lepsze cache locality
+
+// Wady ArrayList:
+// - Wolne wstawianie/usuwanie ze środka: O(n)
+// - Kosztowne zwiększanie rozmiaru
+
+// LinkedList - lista dwukierunkowa
+List<Document> recentlyBorrowed = new LinkedList<>();
+
+// Zalety LinkedList:
+// - Szybkie wstawianie/usuwanie: O(1) jeśli mamy referencję do węzła
+// - Brak potrzeby alokacji ciągłego bloku pamięci
+
+// Wady LinkedList:
+// - Wolny dostęp losowy: O(n) dla get(index)
+// - Większe zużycie pamięci (dodatkowe referencje)
+
+// Kiedy używać czego:
+// ArrayList: gdy często odczytujemy, rzadko modyfikujemy
+// LinkedList: gdy często modyfikujemy początek/koniec listy
+
+
+Implementacja Multimap
+// Multimap w Java - klucz może mieć wiele wartości
+public class MultiMap<K, V> {
+    private Map<K, List<V>> map;
+
+    public MultiMap() {
+        this.map = new HashMap<>();
+    }
+
+    public void put(K key, V value) {
+        map.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+    }
+
+    public List<V> get(K key) {
+        return map.getOrDefault(key, new ArrayList<>());
+    }
+
+    public boolean remove(K key, V value) {
+        List<V> values = map.get(key);
+        if (values != null) {
+            boolean removed = values.remove(value);
+            if (values.isEmpty()) {
+                map.remove(key);
+            }
+            return removed;
+        }
+        return false;
+    }
+}
+
+// Użycie dla kategorii książek
+MultiMap<String, Book> booksByCategory = new MultiMap<>();
+booksByCategory.put("Programming", new Book("Java Guide"));
+booksByCategory.put("Programming", new Book("Python Basics"));
+List<Book> programmingBooks = booksByCategory.get("Programming");
+
+
+5. STRUMIENIE I KOLEKTORY
+List<Book> books = Arrays.asList(
+    new Book("Java Guide", "Oracle", 2020, "Programming"),
+    new Book("Python Basics", "Manning", 2019, "Programming"),
+    new Book("1984", "Orwell", 1949, "Fiction")
+);
+
+// METODY POŚREDNIE (intermediate operations)
+List<String> programmingBookTitles = books.stream()
+    .filter(book -> "Programming".equals(book.getCategory()))    // filtrowanie
+    .map(Book::getTitle)                                         // transformacja
+    .sorted()                                                    // sortowanie
+    .collect(Collectors.toList());                              // kolektor końcowy
+
+// KOLEKTORY (Collectors)
+// 1. Grupowanie według kategorii
+Map<String, List<Book>> booksByCategory = books.stream()
+    .collect(Collectors.groupingBy(Book::getCategory));
+
+// 2. Liczenie książek w każdej kategorii
+Map<String, Long> countByCategory = books.stream()
+    .collect(Collectors.groupingBy(Book::getCategory, Collectors.counting()));
+
+// 3. Łączenie tytułów w string
+String allTitles = books.stream()
+    .map(Book::getTitle)
+    .collect(Collectors.joining(", ", "[", "]"));
+
+
+6. PROGRAMOWANIE GENERYCZNE
+Bounded Wildcards
+public class LibraryUtils {
+
+    // Upper bounded wildcard - "? extends T"
+    // Można czytać jako T lub jego podtypy, ale nie można pisać
+    public static double calculateTotalValue(List<? extends Valuable> items) {
+        double total = 0;
+        for (Valuable item : items) { // można czytać jako Valuable
+            total += item.getValue();
+        }
+        // items.add(new Book()); // BŁĄD - nie można dodawać
+        return total;
+    }
+
+    // Lower bounded wildcard - "? super T"
+    // Można pisać jako T, ale czytanie ograniczone do Object
+    public static void addBooks(List<? super Book> list) {
+        list.add(new Book("Java", "Oracle")); // można dodawać Book
+        // Book book = list.get(0); // BŁĄD - można czytać tylko jako Object
+    }
+}
+
+
+Interfejsy funkcyjne i Optional
+// Standardowe interfejsy funkcyjne
+Supplier<String> randomTitle = () -> "Random Book " + new Random().nextInt(100);
+Consumer<Book> printer = book -> System.out.println("Book: " + book.getTitle());
+Predicate<Book> isProgramming = book -> "Programming".equals(book.getCategory());
+Function<Book, String> bookInfo = book -> book.getTitle() + " by " + book.getAuthor();
+
+// Optional - bezpieczne handling null values
+public Optional<Book> findByIsbn(String isbn) {
+    return books.stream()
+        .filter(book -> isbn.equals(book.getIsbn()))
+        .findFirst();
+}
+
+// Użycie Optional
+Optional<Book> bookOpt = findByIsbn("123456789");
+Book book = bookOpt.orElse(new Book("Default", "Unknown"));
+bookOpt.ifPresent(b -> System.out.println("Found: " + b.getTitle()));
+
+
+7. WĄTKI I SYNCHRONIZACJA
+// Thread-safe Library
+public class ThreadSafeLibrary {
+    private final List<Book> books = new ArrayList<>();
+    private final Object lock = new Object();
+
+    // Synchronized method
+    public synchronized void addBook(Book book) {
+        books.add(book);
+    }
+
+    // Synchronized block
+    public void removeBook(String isbn) {
+        synchronized (lock) {
+            books.removeIf(book -> isbn.equals(book.getIsbn()));
+        }
+    }
+
+    // Volatile field - visibility między wątkami
+    private volatile boolean libraryOpen = true;
+
+    public boolean isOpen() {
+        return libraryOpen;
+    }
+}
+
+// Runnable implementation
+class BookSearcher implements Runnable {
+    private String searchTerm;
+    private List<Book> books;
+
+    @Override
+    public void run() {
+        // searching logic with thread safety
+    }
+}
+
+
+8. TESTOWANIE JUnit
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class BookTest {
+
+    @Test
+    void testBookCreation() {
+        Book book = new Book("Java Guide", "Oracle");
+
+        assertEquals("Java Guide", book.getTitle());
+        assertNotNull(book.getAuthor());
+    }
+
+    @Test
+    void testBookValidation() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Book("", "Author"); // pusty tytuł
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Programming", "Fiction", "Science"})
+    void testValidCategories(String category) {
+        assertDoesNotThrow(() -> {
+            new Book("Title", "Author", 2023, category);
+        });
+    }
+}
+
+
+
+WSKAZÓWKI DO NAUKI
+1. Podstawy Javy
+Zrozum różnice między stosem a stertą
+Ćwicz konstruktory i ich kolejność wywołania
+Pamiętaj o zasadach final: variable (stała), method (nie można przesłonić), class (nie można dziedziczyć)
+2. Programowanie Obiektowe
+Dziedziczenie: IS-A relationship, jedna klasa nadrzędna
+Interfejsy: CAN-DO relationship, wiele interfejsów
+Polimorfizm: Compile-time (overloading) vs Runtime (overriding)
+Enkapsulacja: private/protected/package/public
+3. Wzorce Projektowe
+Singleton: Jedna instancja, thread-safety ważne
+Builder: Konstrukcja złożonych obiektów krok po kroku
+Decorator: Dodawanie funkcjonalności bez zmiany kodu
+4. Kolekcje
+ArrayList: Szybki dostęp, wolne modyfikacje
+LinkedList: Szybkie modyfikacje, wolny dostęp
+Multimap: Map<K, List<V>> - jeden klucz, wiele wartości
+5. Streams
+Intermediate: filter(), map(), sorted() - lazy evaluation
+Terminal: collect(), forEach(), reduce() - wykonanie
+Collectors: groupingBy(), counting(), joining()
+6. Generics
+? extends T: Upper bound - można czytać
+? super T: Lower bound - można pisać
+Wildcards: Type safety w kolekcjach
+7. Wyjątki
+Checked: IOException, SQLException - musimy obsłużyć
+Unchecked: RuntimeException - opcjonalnie
+try-with-resources: Automatyczne zamykanie zasobów
+8. Wątki
+Thread vs Runnable: Runnable lepsze (composition > inheritance)
+Synchronization: synchronized methods/blocks
+Volatile: Visibility między wątkami
+Powodzenia na egzaminie! 🍀
