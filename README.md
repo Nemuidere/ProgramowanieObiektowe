@@ -26,3 +26,4 @@ Readymade.
 Hurts, right? Hurts. Right?
 If it gets me by, I'm fine
 
+N A M I D A
